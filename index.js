@@ -26,7 +26,8 @@ app.use(cookieParser());
 
 // MongoDB Connection Setup
 const client = new MongoClient(process.env.MONGODB_URI, {
-  serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
+  tls: true,
+  tlsAllowInvalidCertificates: true 
 });
 
 let db;
