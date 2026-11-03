@@ -361,6 +361,29 @@ app.get("/api/auth/me", async (req, res) => {
   }
 });
 
+// ৪.৫ প্রোফাইল আপডেট (PUT /api/auth/profile)
+app.put("/api/auth/profile", async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ success: false, message: "Not authenticated" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const { name } = req.body;
+
+    if (!name) return res.status(400).json({ success: false, message: "Name is required" });
+
+    await db.collection("users").updateOne(
+      { email: decoded.email },
+      { $set: { name: name } }
+    );
+
+    res.status(200).json({ success: true, message: "Profile name updated successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Update failed" });
+  }
+});
+
+
 // ৫. লগআউট (POST /api/auth/logout)
 app.post("/api/auth/logout", (req, res) => {
   res.clearCookie("token");
