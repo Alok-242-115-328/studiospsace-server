@@ -397,4 +397,5 @@ app.post("/api/auth/logout", (req, res) => {
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
 });   
+    
  
