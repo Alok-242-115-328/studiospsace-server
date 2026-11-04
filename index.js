@@ -161,23 +161,51 @@ app.delete("/api/studios/:id", async (req, res) => {
 // BOOKINGS API ROUTES
 // ==========================================
 
-// ১. নতুন বুকিং তৈরি করা (POST)
+// টাইমকে নাম্বারে কনভার্ট করার হেল্পার ফাংশন
+function parseTimeRange(timeStr) {
+  // "10:00 AM - 12:00 PM" থেকে শুরু ও শেষের আওয়ার বের করা
+  try {
+    const parts = timeStr.split("-");
+    if (parts.length !== 2) return null;
+    const parseSingleTime = (t) => {
+      const str = t.trim().toUpperCase();
+      let hour = parseInt(str);
+      if (str.includes("PM") && hour !== 12) hour += 12;
+      if (str.includes("AM") && hour === 12) hour = 0;
+      return hour;
+    };
+    return { start: parseSingleTime(parts[0]), end: parseSingleTime(parts[1]) };
+  } catch (e) {
+    return null;
+  }
+}
+
 app.post("/api/bookings", async (req, res) => {
   try {
     const bookingData = req.body;
     bookingData.createdAt = new Date();
     bookingData.status = "Pending";
+
+    const newTime = parseTimeRange(bookingData.time);
     
-    // ডাবল বুকিং চেক
-    const existingBooking = await db.collection("bookings").findOne({
+    // একই স্টুডিও এবং তারিখের সব কনফার্মড বুকিং বের করা
+    const existingBookings = await db.collection("bookings").find({
       studioId: bookingData.studioId,
       date: bookingData.date,
-      time: bookingData.time,
       status: "Confirmed"
-    });
+    }).toArray();
 
-    if (existingBooking) {
-      return res.status(400).json({ success: false, message: "This slot is already booked!" });
+    // চেক করা ওভারল্যাপ হচ্ছে কি না
+    if (newTime) {
+      for (let booking of existingBookings) {
+        const existingTime = parseTimeRange(booking.time);
+        if (existingTime) {
+          // ওভারল্যাপ লজিক: নতুন শুরুর টাইম পুরনো শেষের আগে, এবং নতুন শেষের টাইম পুরনো শুরুর পরে
+          if (newTime.start < existingTime.end && newTime.end > existingTime.start) {
+            return res.status(400).json({ success: false, message: "This time slot overlaps with an existing confirmed booking!" });
+          }
+        }
+      }
     }
 
     const result = await db.collection("bookings").insertOne(bookingData);
@@ -396,6 +424,8 @@ app.post("/api/auth/logout", (req, res) => {
 // ==========================================
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
-});   
-    
+});  
+ 
+   
+ 
  
