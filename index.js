@@ -170,17 +170,22 @@ app.delete("/api/studios/:id", async (req, res) => {
 
 // টাইমকে নাম্বারে কনভার্ট করার হেল্পার ফাংশন
 function parseTimeRange(timeStr) {
-  // "10:00 AM - 12:00 PM" থেকে শুরু ও শেষের আওয়ার বের করা
   try {
     const parts = timeStr.split("-");
     if (parts.length !== 2) return null;
+    
     const parseSingleTime = (t) => {
       const str = t.trim().toUpperCase();
-      let hour = parseInt(str);
-      if (str.includes("PM") && hour !== 12) hour += 12;
-      if (str.includes("AM") && hour === 12) hour = 0;
-      return hour;
+      const [timePart, modifier] = str.split(" ");
+      let [hours, minutes] = timePart.split(":").map(Number);
+      
+      if (modifier === "PM" && hours !== 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+      
+      // 👇 এখন মিনিটকেও হিসাবে আনা হচ্ছে (যেমন: 11:30 = 11.5)
+      return hours + (minutes / 60); 
     };
+    
     return { start: parseSingleTime(parts[0]), end: parseSingleTime(parts[1]) };
   } catch (e) {
     return null;
