@@ -231,16 +231,18 @@ app.get("/api/bookings", async (req, res) => {
 });
 
 // ৩. বুকিং ক্যানসেল করা (PATCH)
+// ৩. বুকিং আপডেট করা (Cancel বা Confirm)
 app.patch("/api/bookings/:id", async (req, res) => {
   try {
     const id = req.params.id;
+    const { status } = req.body; // ফ্রন্টএন্ড থেকে স্ট্যাটাস আসবে
     const query = { _id: new ObjectId(id) };
-    const updateDoc = { $set: { status: "Cancelled" } };
+    const updateDoc = { $set: { status: status || "Cancelled" } };
     
     await db.collection("bookings").updateOne(query, updateDoc);
-    res.status(200).json({ success: true, message: "Booking cancelled" });
+    res.status(200).json({ success: true, message: `Booking ${status || "Cancelled"} successfully` });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Cancellation failed" });
+    res.status(500).json({ success: false, message: "Status update failed" });
   }
 });
 
