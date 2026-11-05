@@ -21,9 +21,16 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID); // 👈 ন
 
 // Middlewares
 app.use(cors({ 
-  origin: ["http://localhost:3000", "https://studiospsace-a8.netlify.app"], 
+  origin: [
+    "http://localhost:3000", 
+    "https://studiospsace-a8.netlify.app",
+    "https://studiospsace-ph-a8.netlify.app"  // 👈 নতুন লিংক যোগ করুন
+  ], 
   credentials: true 
-}));
+}));;
+
+
+
 app.use(express.json());
 app.use(cookieParser());
 
