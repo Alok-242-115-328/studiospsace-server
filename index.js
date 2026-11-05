@@ -242,14 +242,45 @@ app.get("/api/bookings", async (req, res) => {
 app.patch("/api/bookings/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    const { status } = req.body; // ফ্রন্টএন্ড থেকে স্ট্যাটাস আসবে
-    const query = { _id: new ObjectId(id) };
+    const { status } = req.body;
+
+    if (status === "Confirmed") {
+      const bookingToConfirm = await db.collection("bookings").findOne({ _id: new ObjectId(id) });
+      if (!bookingToConfirm) {
+        return res.status(404).json({ success: false, message: "Booking not found" });
+      }
+
+      const newTime = parseTimeRange(bookingToConfirm.time);
+      
+      const existingBookings = await db.collection("bookings").find({
+        studioId: bookingToConfirm.studioId,
+        date: bookingToConfirm.date,
+        status: "Confirmed",
+        _id: { $ne: new ObjectId(id) } 
+      }).toArray();
+
+      if (newTime) {
+        for (let booking of existingBookings) {
+          const existingTime = parseTimeRange(booking.time);
+          if (existingTime && newTime.start < existingTime.end && newTime.end > existingTime.start) {
+            
+            // 👇 এখানে B-এর বুকিংটি অটোমেটিক Cancelled করে দেওয়া হচ্ছে
+            await db.collection("bookings").updateOne(
+              { _id: new ObjectId(id) },
+              { $set: { status: "Cancelled" } }
+            );
+
+            return res.status(400).json({ success: false, message: "This slot is already booked! Your booking has been cancelled." });
+          }
+        }
+      }
+    }
+
     const updateDoc = { $set: { status: status || "Cancelled" } };
-    
-    await db.collection("bookings").updateOne(query, updateDoc);
+    await db.collection("bookings").updateOne({ _id: new ObjectId(id) }, updateDoc);
     res.status(200).json({ success: true, message: `Booking ${status || "Cancelled"} successfully` });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Status update failed" });
+    res.status(500).json({ success: false, message: "Update failed" });
   }
 });
 
